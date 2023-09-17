@@ -1,5 +1,13 @@
+import numpy as np
+
+
 class Variable:
     def __init__(self, data):
+        # 当传入的数据不是 np.ndarray 类型时，提示类型不受支持的错误
+        if data is not None:
+            if not isinstance(data, np.ndarray):
+                raise TypeError('{} is not supported'.format(type(data)))
+
         self.data = data
         self.grad = None
         # 存放计算得到 variable 实例的函数
@@ -17,7 +25,11 @@ class Variable:
         #     x.grad = f.backward(self.grad)
         #     # 获取导数后进行后续的反向传播，以实现自动反向传播
         #     x.backward()
-        
+
+        # 为反向传播的起始节点（正向传播的结果）添加起始导数（即dy/dy=1）
+        if self.grad is None:
+            self.grad = np.ones_like(self.data)
+
         # 存放调用函数
         funcs = [self.creator]
         while funcs:

@@ -1,7 +1,7 @@
 import numpy as np
-from function import Function
+# from function import Function
 from variable import Variable
-from utils import Square, Exp, square, exp
+from function import Square, Exp, square, exp
 
 x = Variable(np.array(10))
 f = Square()
@@ -76,6 +76,9 @@ print(x.grad)
 
 x = Variable(np.array(0.5))
 y = square(exp(square(x)))
-y.grad = np.array(1.0)
+# y.grad = np.array(1.0)
 y.backward()
 print(x.grad)
+
+# make type error
+# x = Variable(1.0)
