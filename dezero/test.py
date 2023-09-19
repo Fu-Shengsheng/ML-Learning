@@ -1,7 +1,7 @@
 import numpy as np
 # from function import Function
 from variable import Variable
-from function import Square, Exp, square, exp
+from function import Square, Exp, Add, square, exp
 
 x = Variable(np.array(10))
 f = Square()
