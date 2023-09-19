@@ -12,7 +12,7 @@ class Function:
         # 使用 * 号对 xs 进行解包
         ys = self.forward(*xs)
 
-        # 对非元组的计算值额外处理
+        # 对非元组的计算值额外处理，以保障下一步的续遍历计算的通用性
         if not isinstance(ys, tuple):
             ys = (ys, )
 
@@ -47,7 +47,9 @@ class Square(Function):
         return x ** 2
 
     def backward(self, gy):
-        x = self.input.data
+        # x = self.input.data
+        # 支持可变长输入&输出
+        x = self.inputs[0].data
         gx = 2 * x * gy
         return gx
 
@@ -57,7 +59,9 @@ class Exp(Function):
         return np.exp(x)
 
     def backward(self, gy):
-        x = self.input.data
+        # x = self.input.data
+        # 支持可变长输入&输出
+        x = self.inputs[0].data
         gx = np.exp(x) * gy
         return gx
     
@@ -65,7 +69,11 @@ class Add(Function):
     def forward(self, x0, x1):
         y = x0 + x1
         return y
-
+    
+    # 加法运算的反向传播系数是1
+    # 二元加法运算，返回一个 gy, gy 的元组
+    def backward(self, gy):
+        return gy, gy
 
 # 定义可供直接调用的函数
 def square(x):
