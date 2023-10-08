@@ -12,9 +12,13 @@ class Variable:
         self.grad = None
         # 存放计算得到 variable 实例的函数
         self.creator = None
+        # 初始化generation，标记变量在计算图中的代数（节点位置）
+        self.generation = 0
 
     def set_creator(self, func):
         self.creator = func
+        self.generation = func.generation + 1
+
 
     def backward(self):
         # # 获取创造函数
@@ -31,7 +35,18 @@ class Variable:
             self.grad = np.ones_like(self.data)
 
         # 存放调用函数
-        funcs = [self.creator]
+        funcs = []
+        seen_set = set()
+        
+        def add_func(f):
+            if f not in seen_set:
+                funcs.append(f)
+                seen_set.add(f)
+                # 按代排序
+                funcs.sort(key=lambda x: x.generation)
+
+        add_func(self.creator)
+
         while funcs:
             # 获取函数，pop弹出数组最后一个元素
             f = funcs.pop()
@@ -54,9 +69,18 @@ class Variable:
             # 即参数f.inputs[i]的导数就是gxs[i]
             # 遍历zip(f.inputs, gxs)为每个输入参数x赋导数
             for x, gx in zip(f.inputs, gxs):
-                x.grad = gx
+                # 针对性的处理同一个输入值在计算中重复使用的问题
+                # 如果x已经赋予过导数，则新一次赋予时需要累加
+                if x.grad == None:
+                    x.grad = gx
+                else:
+                    x.grad = x.grad + gx
 
                 # 如果当前反向传播的前一个环节仍然有函数处理，则循环执行
                 # 实现自动反向传播
                 if x.creator is not None:
-                    funcs.append(x.creator)
+                    add_func(x.creator)
+
+    # 清除梯度，每次进行新运算前调用，防止同一个变量在运算中的梯度累计了前次运算的结果
+    def cleargrad(self):
+        self.grad = None

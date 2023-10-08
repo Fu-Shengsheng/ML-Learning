@@ -18,3 +18,23 @@ z = add(square(x0), square(x1))
 z.backward()
 print(z.data)
 print(x0.grad, x1.grad)
+
+x = Variable(np.array(3))
+y = add(x, x)
+print(y.data)
+y.backward()
+print(x.grad)
+
+# x = Variable(np.array(3))
+x.cleargrad()
+y = add(add(x, x), x)
+y.backward()
+print(x.grad)
+
+# 复杂计算图测试
+x = Variable(np.array(2.0))
+a = square(x)
+y = add(square(a), square(a))
+y.backward()
+print(y.data)
+print(x.grad)

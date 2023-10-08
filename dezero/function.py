@@ -17,6 +17,8 @@ class Function:
             ys = (ys, )
 
         outputs = [Variable(as_array(y)) for y in ys]
+
+        self.generation = max([x.generation for x in inputs])
         # 为列表list的每个元素添加creator信息
         for output in outputs:
             # 输出变量保存创造者信息
