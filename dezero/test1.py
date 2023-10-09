@@ -2,6 +2,7 @@ import numpy as np
 # from function import Function
 from variable import Variable
 from function import add, square
+from config import Config
 
 # xs = [Variable(np.array(2)), Variable(np.array(3))]
 # f = Add()
@@ -38,3 +39,14 @@ y = add(square(a), square(a))
 y.backward()
 print(y.data)
 print(x.grad)
+
+# 开启反向传播，模拟训练过程
+Config.enable_backprop = True
+x = Variable(np.ones((100, 100, 100)))
+y = square(square(square(x)))
+y.backward()
+
+# 关闭反向传播，模拟预测过程
+Config.enable_backprop = True
+x = Variable(np.ones((100, 100, 100)))
+y = square(square(square(x)))

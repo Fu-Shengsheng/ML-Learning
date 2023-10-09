@@ -1,6 +1,5 @@
 import numpy as np
 
-
 class Variable:
     def __init__(self, data):
         # 当传入的数据不是 np.ndarray 类型时，提示类型不受支持的错误
@@ -20,7 +19,7 @@ class Variable:
         self.generation = func.generation + 1
 
 
-    def backward(self):
+    def backward(self, retain_grad=False):
         # # 获取创造函数
         # f = self.creator
         # if f is not None:
@@ -57,7 +56,8 @@ class Variable:
             # x.grad = f.backward(y.grad)
             
             # 将输出变量的导数存储在列表中
-            gys = [output.grad for output in f.outputs]
+            # 由于 f.outputs 是基于 weakref 的弱引用，故此处需要使用 output() 获取引用的值
+            gys = [output().grad for output in f.outputs]
             # 对输出列表进行解包并调用反向传播
             gxs = f.backward(*gys)
             # 当gxs不是元组时，将其转化为元组（比如加法运算返回的是元组，就不需要转换）
@@ -80,6 +80,12 @@ class Variable:
                 # 实现自动反向传播
                 if x.creator is not None:
                     add_func(x.creator)
+            
+            # 清除不需要保留的中间过程值的导数
+            if not retain_grad:
+                for y in f.outputs:
+                    # y是weakref
+                    y().grad = None
 
     # 清除梯度，每次进行新运算前调用，防止同一个变量在运算中的梯度累计了前次运算的结果
     def cleargrad(self):

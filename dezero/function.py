@@ -1,4 +1,6 @@
 import numpy as np
+import weakref
+from config import Config
 from variable import Variable
 from utils import as_array
 
@@ -17,17 +19,19 @@ class Function:
             ys = (ys, )
 
         outputs = [Variable(as_array(y)) for y in ys]
+        
+        if Config.enable_backprop:
+            self.generation = max([x.generation for x in inputs])
+            # 为列表list的每个元素添加creator信息
+            for output in outputs:
+                # 输出变量保存创造者信息
+                output.set_creator(self)
 
-        self.generation = max([x.generation for x in inputs])
-        # 为列表list的每个元素添加creator信息
-        for output in outputs:
-            # 输出变量保存创造者信息
-            output.set_creator(self)
-
-        # 保存输入值
-        self.inputs = inputs
-        # 保存输出值
-        self.outputs = outputs
+            # 保存输入值
+            self.inputs = inputs
+            # 保存输出值
+            # 此处使用 weakref 创建outputs的弱引用，避免直接引用outputs导致的循环依赖
+            self.outputs = [weakref.ref(output) for output in outputs]
 
         # 如果列表中只有一个元素，则返回第一个元素
         return outputs if len(outputs) > 1 else outputs[0]
