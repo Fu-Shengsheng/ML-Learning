@@ -1,4 +1,5 @@
 import numpy as np
+from function import mul, add
 
 class Variable:
     def __init__(self, data, name=None):
@@ -29,6 +30,14 @@ class Variable:
         # 换行后自动插入9个空格，对应 variable( 的长度，使得输出值对齐 
         p = str(self.data).replace('\n', '\n' + ' ' * 9)
         return 'variable(' + p + ')'
+    
+    # 重写 __mul__ 实现乘法运算符 * 的重载
+    # 此处为实例在 * 左侧时的重载计算
+    def __mul__(self, other):
+        return mul(self, other)
+    
+    def __add__(self, other):
+        return add(self, other)
     
     # 使用 @property 装饰器，使得 shape 方法可以作为实例变量被访问
     # 如： x = Variable(np.array([1,2,3],[4,5,6])); 可以直接取 x.shape 而非 x.shape()
