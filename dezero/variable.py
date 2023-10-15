@@ -1,18 +1,55 @@
 import numpy as np
 
 class Variable:
-    def __init__(self, data):
+    def __init__(self, data, name=None):
         # 当传入的数据不是 np.ndarray 类型时，提示类型不受支持的错误
         if data is not None:
             if not isinstance(data, np.ndarray):
                 raise TypeError('{} is not supported'.format(type(data)))
 
         self.data = data
+        # 为变量设置名称，默认为None
+        self.name = name
         self.grad = None
         # 存放计算得到 variable 实例的函数
         self.creator = None
         # 初始化generation，标记变量在计算图中的代数（节点位置）
         self.generation = 0
+    
+    # 定义特殊方法 __len__，实现可以对 Variable 实例应用 len 函数
+    # 如： x = Variable(np.array([1,2,3],[4,5,6])); len(x)
+    def __len__(self):
+        return len(self.data)
+    
+    # 重写 __repr__ 方法对 print 作用后的实例输出的字符串进行自定义
+    def __repr__(self):
+        if self.data is None:
+            return 'variable(None)'
+        # str 将元素转为字符串类型
+        # 换行后自动插入9个空格，对应 variable( 的长度，使得输出值对齐 
+        p = str(self.data).replace('\n', '\n' + ' ' * 9)
+        return 'variable(' + p + ')'
+    
+    # 使用 @property 装饰器，使得 shape 方法可以作为实例变量被访问
+    # 如： x = Variable(np.array([1,2,3],[4,5,6])); 可以直接取 x.shape 而非 x.shape()
+    @property
+    def shape(self):
+        return self.data.shape
+    
+    # 维度
+    @property
+    def ndim(self):
+        return self.data.ndim
+    
+    # 元素数
+    @property
+    def size(self):
+        return self.data.size
+    
+    # 数据类型
+    @property
+    def type(self):
+        return self.data.dtype
 
     def set_creator(self, func):
         self.creator = func
