@@ -15,3 +15,9 @@ def as_array(x):
     if np.isscalar(x):
         return np.array(x)
     return x
+
+# 将传入的参数类型转为 Variable 实例
+def as_variable(obj):
+    if isinstance(obj, Variable):
+        return obj
+    return Variable(obj)

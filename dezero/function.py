@@ -2,13 +2,16 @@ import numpy as np
 import weakref
 from config import Config
 from variable import Variable
-from utils import as_array
+from utils import as_array, as_variable
 
 # Function基类定义
 class Function:
     # call 的声明使类的实例可以当做可调用对象使用
     # *inputs 表示所有的参数一次性拿到，不限参数数量
     def __call__(self, *inputs):
+        # 将传入的参数类型转为 Variable
+        inputs = [as_variable(x) for x in inputs]
+
         # 参数和返回值支持列表
         xs = [x.data for x in inputs]
         # 使用 * 号对 xs 进行解包
@@ -100,9 +103,12 @@ def exp(x):
     return f(x)
 
 def add(x0, x1):
+    # 当 Variable 实例位于 + 号左侧时会调用，此时需要将 + 号右侧的数据也转为 ndarray 类型
+    x1 = as_array(x1)
     f = Add()
     return f(x0, x1)
 
 def mul(x0, x1):
+    x1 = as_array(x1)
     f = Mul()
     return f(x0, x1)

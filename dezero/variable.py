@@ -2,6 +2,8 @@ import numpy as np
 from function import mul, add
 
 class Variable:
+    # 提升实例运算符的优先级，使其高于 ndarray 实例中重载的运算符
+    __array_priority__ = 200
     def __init__(self, data, name=None):
         # 当传入的数据不是 np.ndarray 类型时，提示类型不受支持的错误
         if data is not None:
@@ -36,7 +38,14 @@ class Variable:
     def __mul__(self, other):
         return mul(self, other)
     
+    # 实现实例在 * 右侧的重载
+    def __rmul__(self, other):
+        return mul(self, other)
+    
     def __add__(self, other):
+        return add(self, other)
+    
+    def __radd__(self, other):
         return add(self, other)
     
     # 使用 @property 装饰器，使得 shape 方法可以作为实例变量被访问
