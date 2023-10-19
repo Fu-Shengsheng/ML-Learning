@@ -1,6 +1,43 @@
+import contextlib
 import numpy as np
-from function import mul, add
+import weakref
 
+# 控制是否启用反向传播
+# 当进行推理验证阶段时，不需要启用，不保留计算之间的连接关系，以节省内存空间
+class Config:
+    enable_backprop = True
+
+# 借助 @contextlib.contextmanager 装饰器创建一个判断上下文的函数
+# 该函数搭配 with 使用，进入 with 时预处理被调用，离开 with 时后处理被调用
+@contextlib.contextmanager
+def using_config(name, value):
+    # 预处理
+    old_val = getattr(Config, name)
+    setattr(Config, name, value)
+    try:
+        # 程序暂停
+        yield
+    finally:
+        # 后处理
+        setattr(Config, name, old_val)
+
+def no_grad():
+    return using_config('enable_backprop', False)
+
+# np.ndarray 转换函数
+def as_array(x):
+    # 判断判断x是否为 ndarray 类型
+    if np.isscalar(x):
+        return np.array(x)
+    return x
+
+# 将传入的参数类型转为 Variable 实例
+def as_variable(obj):
+    if isinstance(obj, Variable):
+        return obj
+    return Variable(obj)
+
+# Variable 变量类
 class Variable:
     # 提升实例运算符的优先级，使其高于 ndarray 实例中重载的运算符
     __array_priority__ = 200
@@ -32,21 +69,6 @@ class Variable:
         # 换行后自动插入9个空格，对应 variable( 的长度，使得输出值对齐 
         p = str(self.data).replace('\n', '\n' + ' ' * 9)
         return 'variable(' + p + ')'
-    
-    # 重写 __mul__ 实现乘法运算符 * 的重载
-    # 此处为实例在 * 左侧时的重载计算
-    def __mul__(self, other):
-        return mul(self, other)
-    
-    # 实现实例在 * 右侧的重载
-    def __rmul__(self, other):
-        return mul(self, other)
-    
-    def __add__(self, other):
-        return add(self, other)
-    
-    def __radd__(self, other):
-        return add(self, other)
     
     # 使用 @property 装饰器，使得 shape 方法可以作为实例变量被访问
     # 如： x = Variable(np.array([1,2,3],[4,5,6])); 可以直接取 x.shape 而非 x.shape()
@@ -145,3 +167,118 @@ class Variable:
     # 清除梯度，每次进行新运算前调用，防止同一个变量在运算中的梯度累计了前次运算的结果
     def cleargrad(self):
         self.grad = None
+
+# Function基类定义
+class Function:
+    # call 的声明使类的实例可以当做可调用对象使用
+    # *inputs 表示所有的参数一次性拿到，不限参数数量
+    def __call__(self, *inputs):
+        # 将传入的参数类型转为 Variable
+        inputs = [as_variable(x) for x in inputs]
+
+        # 参数和返回值支持列表
+        xs = [x.data for x in inputs]
+        # 使用 * 号对 xs 进行解包
+        ys = self.forward(*xs)
+
+        # 对非元组的计算值额外处理，以保障下一步的续遍历计算的通用性
+        if not isinstance(ys, tuple):
+            ys = (ys, )
+
+        outputs = [Variable(as_array(y)) for y in ys]
+        
+        if Config.enable_backprop:
+            self.generation = max([x.generation for x in inputs])
+            # 为列表list的每个元素添加creator信息
+            for output in outputs:
+                # 输出变量保存创造者信息
+                output.set_creator(self)
+
+            # 保存输入值
+            self.inputs = inputs
+            # 保存输出值
+            # 此处使用 weakref 创建outputs的弱引用，避免直接引用outputs导致的循环依赖
+            self.outputs = [weakref.ref(output) for output in outputs]
+
+        # 如果列表中只有一个元素，则返回第一个元素
+        return outputs if len(outputs) > 1 else outputs[0]
+
+    # 前向传播（计算结果）
+    def forward(self, xs):
+        # 抛出异常，表示这个方法应该通过继承实现
+        raise NotImplementedError()
+
+    # 反向传播（计算导数）
+    def backward(self, gys):
+        raise NotImplementedError()
+
+# Square 类继承自 Function 类
+class Square(Function):
+    def forward(self, x):
+        return x ** 2
+
+    def backward(self, gy):
+        # x = self.input.data
+        # 支持可变长输入&输出
+        x = self.inputs[0].data
+        gx = 2 * x * gy
+        return gx
+
+class Exp(Function):
+    def forward(self, x):
+        return np.exp(x)
+
+    def backward(self, gy):
+        # x = self.input.data
+        # 支持可变长输入&输出
+        x = self.inputs[0].data
+        gx = np.exp(x) * gy
+        return gx
+    
+class Add(Function):
+    def forward(self, x0, x1):
+        y = x0 + x1
+        return y
+    
+    # 加法运算的反向传播系数是1
+    # 二元加法运算，返回一个 gy, gy 的元组
+    def backward(self, gy):
+        return gy, gy
+    
+class Mul(Function):
+    def forward(self, x0, x1):
+        y = x0 * x1
+        return y
+    
+    def backward(self, gy):
+        x0, x1 = self.inputs[0].data,  self.inputs[1].data
+        return gy * x1, gy * x0
+
+# 定义可供直接调用的函数
+def square(x):
+    f = Square()
+    return f(x)
+
+def exp(x):
+    f = Exp()
+    return f(x)
+
+def add(x0, x1):
+    # 当 Variable 实例位于 + 号左侧时会调用，此时需要将 + 号右侧的数据也转为 ndarray 类型
+    x1 = as_array(x1)
+    f = Add()
+    return f(x0, x1)
+
+def mul(x0, x1):
+    x1 = as_array(x1)
+    f = Mul()
+    return f(x0, x1)
+
+def setup_variable():
+    # 重写 __add__ 实现乘法运算符 + 的重载
+    # 此处为 Variable 实例在 + 左侧时的重载计算
+    Variable.__add__ = add
+    # 实现 Variable 实例在 * 右侧的重载
+    Variable.__radd__ = add
+    Variable.__mul__ = mul
+    Variable.__rmul__ = mul
