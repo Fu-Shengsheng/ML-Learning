@@ -254,6 +254,51 @@ class Mul(Function):
         x0, x1 = self.inputs[0].data,  self.inputs[1].data
         return gy * x1, gy * x0
 
+# 负数运算（negative number arithmetic）
+class Neg(Function):
+    def forward(self, x):
+        return -x
+    
+    def backward(self, gy):
+        return -gy
+    
+# 减法运算（Subtraction）
+class Sub(Function):
+    def forward(self, x0, x1):
+        y = x0 - x1
+        return y
+    
+    def backward(self, gy):
+        return gy, -gy
+
+# 除法运算（Division operation）
+class Div(Function):
+    def forward(self, x0, x1):
+        y = x0 / x1
+        return y
+    
+    def backward(self, gy):
+        x0, x1 = self.inputs[0].data,  self.inputs[1].data
+        gx0 = gy / x1
+        gx1 = gy * (-x0 / x1 ** 2)
+        return gx0, gx1
+
+# 求幂运算（exponentiation）
+class Pow(Function):
+    # c 为指数
+    def __init__(self, c):
+        self.c = c
+    
+    def forward(self, x):
+        y = x ** self.c
+        return y
+    
+    def backward(self, gy):
+        x = self.inputs[0].data
+        c = self.c
+        gx = c * x ** (c - 1) * gy
+        return gx
+    
 # 定义可供直接调用的函数
 def square(x):
     f = Square()
@@ -274,6 +319,33 @@ def mul(x0, x1):
     f = Mul()
     return f(x0, x1)
 
+def neg(x):
+    return Neg()(x)
+
+def sub(x0, x1):
+    x1 = as_array(x1)
+    f = Sub()
+    return f(x0, x1)
+
+def rsub(x0, x1):
+    x1 = as_array(x1)
+    f = Sub()
+    # 交换减数和被减数
+    return f(x1, x0)
+
+def div(x0, x1):
+    x1 = as_array(x1)
+    f = Div()
+    return f(x0, x1)
+
+def rdiv(x0, x1):
+    x1 = as_array(x1)
+    f = Div()
+    return f(x1, x0)
+
+def pow(x, c):
+    return Pow(c)(x)
+
 def setup_variable():
     # 重写 __add__ 实现乘法运算符 + 的重载
     # 此处为 Variable 实例在 + 左侧时的重载计算
@@ -282,3 +354,9 @@ def setup_variable():
     Variable.__radd__ = add
     Variable.__mul__ = mul
     Variable.__rmul__ = mul
+    Variable.__neg__ = neg
+    Variable.__sub__ = sub
+    Variable.__rsub__ = rsub
+    Variable.__div__ = div
+    Variable.__rdiv__ = rdiv
+    Variable.__pow__ = pow
