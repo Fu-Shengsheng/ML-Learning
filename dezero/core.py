@@ -258,7 +258,7 @@ class Mul(Function):
     
     def backward(self, gy):
         # x0, x1 = self.inputs[0].data,  self.inputs[1].data
-        x0, x1 = self.inputs[0]
+        x0, x1 = self.inputs[0], self.inputs[1]
         return gy * x1, gy * x0
 
 # 负数运算（negative number arithmetic）
