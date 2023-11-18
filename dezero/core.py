@@ -1,6 +1,7 @@
 import contextlib
 import numpy as np
 import weakref
+import dezero
 
 # 控制是否启用反向传播
 # 当进行推理验证阶段时，不需要启用，不保留计算之间的连接关系，以节省内存空间
@@ -172,6 +173,14 @@ class Variable:
     # 清除梯度，每次进行新运算前调用，防止同一个变量在运算中的梯度累计了前次运算的结果
     def cleargrad(self):
         self.grad = None
+
+    # reshape 变形方法
+    def reshape(self, *shape):
+        # 实现对reshape([2,3]),reshape((2,3))形式调用的兼容
+        if len(shape) == 1 and isinstance(shape[0], (tuple, list)):
+            shape = shape[0]
+        return dezero.functions.reshape(self, shape)
+    
 
 # Function基类定义
 class Function:
