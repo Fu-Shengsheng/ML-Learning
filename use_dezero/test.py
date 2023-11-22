@@ -20,3 +20,8 @@ y.backward()
 
 print(y)
 print(x.grad)
+
+x = Variable(np.random.rand(2, 3))
+y = x.transpose()
+xt = x.T
+print(x, y, xt)

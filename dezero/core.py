@@ -91,6 +91,11 @@ class Variable:
     @property
     def type(self):
         return self.data.dtype
+    
+    # 转置矩阵
+    @property
+    def T(self):
+        return dezero.functions.transpose(self)
 
     def set_creator(self, func):
         self.creator = func
@@ -181,6 +186,13 @@ class Variable:
             shape = shape[0]
         return dezero.functions.reshape(self, shape)
     
+    # 转置
+    def transpose(self):
+        return dezero.functions.transpose(self)
+    
+    # 求和
+    def sum(self, axis=None, keepdims=False):
+        return dezero.functions.sum(self, axis, keepdims)
 
 # Function基类定义
 class Function:
