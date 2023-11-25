@@ -1,4 +1,3 @@
-import numpy as np
 import os
 import subprocess
 from dezero.core_simple import Variable, Function

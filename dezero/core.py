@@ -264,13 +264,20 @@ class Exp(Function):
     
 class Add(Function):
     def forward(self, x0, x1):
+        # 对于不同形状的 ndarray，numpy 会在内部对计算进行自动进行广播计算，使两个加数的形状一致
+        # 为了backward的顺利进行，需要存储两个加数的形状
+        self.x0_shape, self.x1_shape = x0.shape, x1.shape
         y = x0 + x1
         return y
     
     # 加法运算的反向传播系数是1
     # 二元加法运算，返回一个 gy, gy 的元组
     def backward(self, gy):
-        return gy, gy
+        gx0, gx1 = gy, gy
+        if self.x0_shape != self.x1_shape:
+            gx0 = dezero.functions.sum_to(gx0, self.x0_shape)
+            gx1 = dezero.functions.sum_to(gx1, self.x1_shape)
+        return gx0, gx1
     
 class Mul(Function):
     def forward(self, x0, x1):
