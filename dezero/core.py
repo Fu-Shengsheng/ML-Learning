@@ -274,6 +274,7 @@ class Add(Function):
     # 二元加法运算，返回一个 gy, gy 的元组
     def backward(self, gy):
         gx0, gx1 = gy, gy
+        # 通过求梯度的和，使参数的梯度形状与参数保持一致
         if self.x0_shape != self.x1_shape:
             gx0 = dezero.functions.sum_to(gx0, self.x0_shape)
             gx1 = dezero.functions.sum_to(gx1, self.x1_shape)
@@ -281,13 +282,21 @@ class Add(Function):
     
 class Mul(Function):
     def forward(self, x0, x1):
+        # 对于不同形状的 ndarray，numpy 会在内部对计算进行自动进行广播计算，使两个乘数的形状一致
+        # 为了backward的顺利进行，需要存储两个乘数的形状
+        self.x0_shape, self.x1_shape = x0.shape, x1.shape
         y = x0 * x1
         return y
     
     def backward(self, gy):
         # x0, x1 = self.inputs[0].data,  self.inputs[1].data
         x0, x1 = self.inputs[0], self.inputs[1]
-        return gy * x1, gy * x0
+        gx0, gx1 = gy * x1, gy * x0
+        # 通过求梯度的和，使参数的梯度形状与参数保持一致
+        if self.x0_shape != self.x1_shape:
+            gx0 = dezero.functions.sum_to(gx0, self.x0_shape)
+            gx1 = dezero.functions.sum_to(gx1, self.x1_shape)
+        return gx0, gx1
 
 # 负数运算（negative number arithmetic）
 class Neg(Function):
@@ -300,15 +309,26 @@ class Neg(Function):
 # 减法运算（Subtraction）
 class Sub(Function):
     def forward(self, x0, x1):
+        # 对于不同形状的 ndarray，numpy 会在内部对计算进行自动进行广播计算，使减数和被减数的形状一致
+        # 为了backward的顺利进行，需要存储减数和被减数的形状
+        self.x0_shape, self.x1_shape = x0.shape, x1.shape
         y = x0 - x1
         return y
     
     def backward(self, gy):
-        return gy, -gy
+        gx0, gx1 = gy, -gy
+        # 通过求梯度的和，使参数的梯度形状与参数保持一致
+        if self.x0_shape != self.x1_shape:
+            gx0 = dezero.functions.sum_to(gx0, self.x0_shape)
+            gx1 = dezero.functions.sum_to(gx1, self.x1_shape)
+        return gx0, gx1
 
 # 除法运算（Division operation）
 class Div(Function):
     def forward(self, x0, x1):
+        # 对于不同形状的 ndarray，numpy 会在内部对计算进行自动进行广播计算，使被除数和除数的形状一致
+        # 为了backward的顺利进行，需要存储被除数和除数的形状
+        self.x0_shape, self.x1_shape = x0.shape, x1.shape
         y = x0 / x1
         return y
     
@@ -317,6 +337,10 @@ class Div(Function):
         x0, x1 = self.inputs[0], self.inputs[1]
         gx0 = gy / x1
         gx1 = gy * (-x0 / x1 ** 2)
+        # 通过求梯度的和，使参数的梯度形状与参数保持一致
+        if self.x0_shape != self.x1_shape:
+            gx0 = dezero.functions.sum_to(gx0, self.x0_shape)
+            gx1 = dezero.functions.sum_to(gx1, self.x1_shape)
         return gx0, gx1
 
 # 求幂运算（exponentiation）
