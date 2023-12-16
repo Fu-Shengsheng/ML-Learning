@@ -162,3 +162,80 @@ class MeanSquaredError(Function):
     
 def mean_squared_error(x0, x1):
     return MeanSquaredError()(x0, x1)
+
+# class Linear(Function):
+#     # 由于计算过程需要保留 gW, gb 故 w 和 b 需要作为 inputs 而非实例内部属性
+#     # 使用 __init__ 存储 W 和 b 的方法是错误的
+#     def __init__(self, W, b):
+#         self.W = W
+#         self.b = b
+
+#     def forward(self, x):
+#         # 由于 forward 调用的时候会对入参进行解包，自动读取参数的 data 属性传入，故此处的 x 是 Variable类型 x 的 data 字段
+#         # Function 中对 forward 计算结果 y 有要求必须是 ndarray，故此处需要取 W.data 而不是 W，否则 y 的类型就变成了 Variable
+#         # 对于 ndarray 类型的 x 和 W 相乘，不能调用 matmul 而只能调用 dot
+#         y = x.dot(self.W.data)
+#         # 同理，为了保持 y 的 ndarray 类型，需要与 b.data 相加而不是直接 + b
+#         if self.b is not None:
+#             y += self.b.data
+#         return y
+    
+#     def backward(self, gy):
+#         print('----backward---')
+#         x = self.inputs[0]
+#         print('----x---')
+#         print(type(x))
+#         print(x.shape)
+#         gb = None if self.b.data is None else sum_to(gy, self.b.shape)
+#         gx = matmul(gy, self.W.T)
+#         gW = matmul(x.T, gy)
+#         # 由于计算过程需要保留 gW, gb 故 w 和 b 需要作为 inputs 而非实例内部属性
+#         return gx, gW, gb
+    
+# def linear(x, W, b=None):
+#     return Linear(W, b)(x)
+
+class Linear(Function):
+    def forward(self, x, W, b):
+        y = x.dot(W)
+        if b is not None:
+            y += b
+        return y
+
+    def backward(self, gy):
+        x, W, b = self.inputs
+        gb = None if b.data is None else sum_to(gy, b.shape)
+        gx = matmul(gy, W.T)
+        gW = matmul(x.T, gy)
+        return gx, gW, gb
+
+
+def linear(x, W, b=None):
+    return Linear()(x, W, b)
+
+class Exp(Function):
+    def forward(self, x):
+        y = np.exp(x)
+        return y
+
+    def backward(self, gy):
+        y = self.outputs[0]()  # weakref
+        gx = gy * y
+        return gx
+
+def exp(x):
+    return Exp()(x)
+
+class Sigmoid(Function):
+    def forward(self, x):
+        y = 1 / (1 + np.exp(-x))
+        return y
+
+    def backward(self, gy):
+        y = self.outputs[0]()
+        gx = gy * y * (1 - y)
+        return gx
+
+
+def sigmoid(x):
+    return Sigmoid()(x)
