@@ -194,6 +194,9 @@ class Variable:
     def sum(self, axis=None, keepdims=False):
         return dezero.functions.sum(self, axis, keepdims)
 
+class Paramter(Variable):
+    pass
+
 # Function基类定义
 class Function:
     # call 的声明使类的实例可以当做可调用对象使用
