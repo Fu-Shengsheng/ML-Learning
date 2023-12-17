@@ -89,7 +89,7 @@ class Variable:
     
     # 数据类型
     @property
-    def type(self):
+    def dtype(self):
         return self.data.dtype
     
     # 转置矩阵
@@ -424,3 +424,4 @@ def setup_variable():
     Variable.__truediv__ = div
     Variable.__rtruediv__ = rdiv
     Variable.__pow__ = pow
+    Variable.__getitem__ = dezero.functions.get_item
