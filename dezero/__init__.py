@@ -19,6 +19,9 @@ else:
     from dezero.core import as_array
     from dezero.core import as_variable
     from dezero.core import setup_variable
+    from dezero.layers import Layer
+    from dezero.models import Model
+    from dezero.models import MLP
 
 # 执行 Variable 实例的运算符重载
 setup_variable()

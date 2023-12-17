@@ -9,7 +9,8 @@ class Layer:
 
     # __setattr__ 用于在设置对象属性时调用
     def __setattr__(self, name, value):
-        if isinstance(value, Paramter):
+        # Layer 支持持有 Parameter 和其他 Layer 实例
+        if isinstance(value, (Paramter, Layer)):
             self._params.add(name)
 
         # 为实例挂载属性，此处super调用的父类是基类 Object
@@ -33,9 +34,15 @@ class Layer:
     
     def params(self):
         for name in self._params:
-            # yield 暂停处理并返回值
-            # 实现按顺序返回参数
-            yield self.__dict__[name]
+            obj = self.__dict__[name]
+
+            # 从 Layer 实例中取出参数
+            if isinstance(obj, Layer):
+                yield from obj.params()
+            else:
+                # yield 暂停处理并返回值
+                # 实现按顺序返回参数
+                yield obj
 
     def cleargrads(self):
         for param in self.params():
