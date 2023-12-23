@@ -22,6 +22,7 @@ else:
     from dezero.layers import Layer
     from dezero.models import Model
     from dezero.models import MLP
+    from dezero.dataloaders import DataLoader
 
 # 执行 Variable 实例的运算符重载
 setup_variable()
