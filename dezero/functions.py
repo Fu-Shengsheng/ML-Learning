@@ -1,5 +1,5 @@
 import numpy as np
-from dezero import Function, as_variable
+from dezero import Function, as_variable, Variable, as_array
 from dezero import utils
 
 class Sin(Function):
@@ -329,3 +329,14 @@ class GetItemGrad(Function):
 def get_item(x, slices):
     f = GetItem(slices)
     return f(x)
+
+# 精确度评估函数
+def accuracy(y, t):
+    y, t = as_variable(y), as_variable(t)
+    
+    pred = y.data.argmax(axis=1).reshape(t.shape)
+    # 生成一个布尔类型的数组，表示模型预测的类别是否与实际标签相同
+    result = (pred == t.data)
+    # result.mean() 计算 result 数组中 True 的比例，即被正确预测的样本数占总样本数的比例。
+    acc = result.mean()
+    return Variable(as_array(acc))
