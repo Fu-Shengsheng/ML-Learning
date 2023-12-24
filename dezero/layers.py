@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import weakref
 import dezero.functions as F
@@ -47,6 +48,38 @@ class Layer:
     def cleargrads(self):
         for param in self.params():
             param.cleargrad()
+
+    # 递归取出 layer 中的所有参数，子层级下的参数为 layer/key，并挂载到 params_dict 对象
+    def _flatten_params(self, params_dict, parent_key=''):
+        for name in self._params:
+            obj = self.__dict__[name]
+            key = parent_key + '/' + name if parent_key else name
+
+            if isinstance(obj, Layer):
+                obj._flatten_params(params_dict, key)
+            else:
+                params_dict[key] = obj
+
+    # 保存参数
+    def save_weights(self, path):
+        params_dict = {}
+        self._flatten_params(params_dict)
+        array_dict = {key: param.data for key, param in params_dict.items() if param is not None}
+        try:
+            np.savez_compressed(path, **array_dict)
+        except (Exception, KeyboardInterrupt) as e:
+            if os.path.exists(path):
+                os.remove(path)
+            raise
+
+    # 加载参数
+    def load_weights(self, path):
+        npz = np.load(path)
+        params_dict = {}
+        self._flatten_params(params_dict)
+        for key, param in params_dict.items():
+            param.data = npz[key]
+
 
 class Linear(Layer):
     def __init__(self, out_size, nobias=False, dtype=np.float32, in_size=None):

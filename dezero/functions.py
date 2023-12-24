@@ -1,4 +1,5 @@
 import numpy as np
+import dezero
 from dezero import Function, as_variable, Variable, as_array
 from dezero import utils
 
@@ -242,7 +243,8 @@ def exp(x):
 
 class Sigmoid(Function):
     def forward(self, x):
-        y = 1 / (1 + np.exp(-x))
+        # y = 1 / (1 + np.exp(-x))
+        y = np.tanh(x * 0.5) * 0.5 + 0.5  # Better implementation
         return y
 
     def backward(self, gy):
@@ -274,6 +276,20 @@ class Softmax(Function):
 
 def softmax(x, axis=1):
     return Softmax(axis)(x)
+
+class ReLU(Function):
+    def forward(self, x):
+        y = np.maximum(x, 0.0)
+        return y
+    
+    def backward(self, gy):
+        x, = self.inputs
+        mask = x.data > 0
+        gx = gy * mask
+        return gx
+    
+def relu(x):
+    return ReLU()(x)
 
 class SoftmaxCrossEntropy(Function):
     def forward(self, x, t):
@@ -340,3 +356,16 @@ def accuracy(y, t):
     # result.mean() 计算 result 数组中 True 的比例，即被正确预测的样本数占总样本数的比例。
     acc = result.mean()
     return Variable(as_array(acc))
+
+# dropout
+def dropout(x, dropout_ratio=0.5):
+    x = as_variable(x)
+    
+    if dezero.Config.train:
+        # np.random.rand 不接受元组作为参数，故此处需要解包
+        mask = np.random.rand(*x.shape) > dropout_ratio
+        scale = np.array(1.0 - dropout_ratio).astype(x.dtype)
+        y = x * mask / scale
+        return y
+    else:
+        return x
