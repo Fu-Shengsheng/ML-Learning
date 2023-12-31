@@ -19,11 +19,52 @@ def conv2d_simple(x, W, b=None, stride=1, pad=0):
     OH  = get_conv_outsize(H, KH, SH, PH)
     OW = get_conv_outsize(W, KW, SW, PW)
 
+    # 每张图通过 im2col 展开
+    # 展开过程为：
+    # 1、每次取卷积核相同形状的的图片像素，展开为长度为 C*KH*KW 长度的列
+    # 2、根据输出形状，最终每张图片的所有像素展开为 (OH*OW, C*KH*KW) 形状的张量
+    # 3、N张图像，则最终转换为 (N*OH*OW, C*KH*KW) 形状的二维张量
     col = im2col(x, (KH, KW), stride, pad, to_matrix=True)
-    # 将卷积核并排展开为一列
+    # 将卷积核并排展开为一列，并进行转置，以满足矩阵乘法计算
+    # 每个卷积核展开为 C*KH*KW 长度的列
+    # OC 个卷积核展开为 (OC, C*KH*KW)
+    # 转置后生成(C*KH*KW, OC)形状的张量
     Weight = Weight.reshape(OC, -1).transpose()
+
+    # 线性计算后得到 (N*OH*OW, OC) 形状的张量
     t = linear(col, Weight, b)
+    # 由于目标张量的形状为（N, OC, OH, OW）,故需要进行换轴转置
     y = t.reshape(N, OH, OW, OC).transpose(0, 3, 1, 2)
+    return y
+
+def pooling_simple(x, kernel_size, stride=1, pad=0):
+    x = as_variable(x)
+    # 获取卷积处理后的矩阵各个维度的数据
+    N, C, H, W = x.shape
+    # 池化核的形状
+    KH, KW = pair(kernel_size)
+    # pad
+    PH, PW = pair(pad)
+    # stride
+    SH, SW = pair(stride)
+
+    # 获取输出尺寸
+    # 池化和卷积的计算方式相同，通常卷积的 stride 为 1，而池化的 stride 为 kernel_size
+    OH  = get_conv_outsize(H, KH, SH, PH)
+    OW = get_conv_outsize(W, KW, SW, PW)
+
+    # 将每张图像展开为一维数据，形状为 (C*KH*KW, OH, OW)
+    col = im2col(x, kernel_size, stride, pad, to_matrix=True)
+    # 每张图 reshape 形状为 (C*OH*OW, KH*KW)
+    # 此时每行就是待池化的数据，大小与池化核相同
+    col = col.reshape(-1, KH * KW)
+    # 求每行的最大值，得到 (C*KH*KW, 1) 形状的张量
+    # N 张图张量形状为 (N, C*KH*KW, 1)
+    y = col.max(axis=1)
+    # 每张图 reshape 的形状为 (OH, OW, C)
+    # 得到的 y 形状为 (N, OH, OW, C)
+    # 因为输出的目标张量的颜色通道在第二维，故需要进行换轴转置
+    y = y.reshape(N, OH, OW, C).transpose(0, 3, 1, 2)
     return y
 
 # =============================================================================

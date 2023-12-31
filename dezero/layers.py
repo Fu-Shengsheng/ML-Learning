@@ -3,6 +3,7 @@ import numpy as np
 import weakref
 import dezero.functions as F
 from dezero.core import Paramter
+from dezero.utils import pair
 
 class Layer:
     def __init__(self):
@@ -117,4 +118,41 @@ class Linear(Layer):
             self._init_W()
 
         y = F.linear(x, self.W, self.b)
+        return y
+
+class Conv2d(Layer):
+    def __init__(self, out_channels, kernel_size, stride=1, pad=0, nobias=False, dtype=np.float32, in_channels=None):
+        super().__init__()
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.kernel_size = kernel_size
+        self.stride = stride
+        self.pad = pad
+        self.dtype = dtype
+
+        self.W = Paramter(None, name='W')
+
+        if in_channels is not None:
+            self._init_W()
+
+        if nobias:
+            self.b = None
+        else:
+            self.b = Paramter(np.zeros(out_channels, dtype=dtype), name='b')
+
+    def _init_W(self):
+        C, OC = self.in_channels, self.out_channels
+        KH, KW = pair(self.kernel_size)
+        # 初始化权重的缩放因子
+        scale = np.sqrt(1 / (C * KH * KW))
+        # 生成的数据乘以 scale 作为权重是为了防止 W 的值过大或者过小，出现梯度消失或者爆炸的情况
+        W_data = np.random.randn(OC, C, KH, KW).astype(self.dtype) * scale
+        self.W.data = W_data
+
+    def forward(self, x):
+        if self.W.data is None:
+            self.in_channels = x.shape[1]
+            self._init_W()
+        
+        y = F.conv2d_simple(x, self.W, self.b, self.stride, self.pad)
         return y
