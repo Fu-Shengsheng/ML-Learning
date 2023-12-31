@@ -206,3 +206,14 @@ def pair(x):
 def get_conv_outsize(input_size, kernel_size, stride, pad):
     # // 表示除法取整
     return (input_size + pad * 2 - kernel_size) // stride + 1
+
+def max_backward_shape(x, axis):
+    if axis is None:
+        axis = range(x.ndim)
+    elif isinstance(axis, int):
+        axis = (axis,)
+    else:
+        axis = axis
+
+    shape = [s if ax not in axis else 1 for ax, s in enumerate(x.shape)]
+    return shape

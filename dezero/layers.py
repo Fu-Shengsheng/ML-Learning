@@ -156,3 +156,29 @@ class Conv2d(Layer):
         
         y = F.conv2d_simple(x, self.W, self.b, self.stride, self.pad)
         return y
+    
+
+class RNN(Layer):
+    def __init__(self, hidden_size, in_size=None):
+        super().__init__()
+        # x2h 全连接层声明，初始化参数
+        self.x2h = Linear(hidden_size, in_size=in_size)
+        # h2h 全连接层声明，初始化参数
+        self.h2h = Linear(hidden_size, in_size=in_size, nobias=True)
+        self.h = None
+
+    def reset_state(self):
+        self.h = None
+
+    def forward(self, x):
+        # 对于首次计算，对原始输入值进行 x2h 计算后执行激活
+        if self.h is None:
+            h_new = F.tanh(self.x2h(x))
+        # 后续每次计算都基于之前得到的 h 进行 h2h 计算，并加上本次的 x2h 计算
+        # 这样就建立了本轮运算的数据与前一轮运算的数据的关联关系
+        else:
+            # 对于同一个 RNN Layer，因为 hidden_size（即输出形状） 已经确定，故前后两轮形状相同，可以相加
+            h_new = F.tanh(self.x2h(x) + self.h2h(self.h))
+        
+        self.h = h_new
+        return h_new

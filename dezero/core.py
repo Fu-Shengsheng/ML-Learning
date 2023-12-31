@@ -201,6 +201,23 @@ class Variable:
     # 求和
     def sum(self, axis=None, keepdims=False):
         return dezero.functions.sum(self, axis, keepdims)
+    
+    # 切断计算连接
+    # 使反向传播终止
+    # RNN 模型中用于及时切断与前一次训练结果的关联性，避免梯度爆炸
+    def unchain(self):
+        self.creator = None
+
+    # 反向回溯变量和函数，并调用变量的 unchain 方法
+    def unchain_backward(self):
+        if self.creator is None:
+            funcs = [self.creator]
+            while funcs:
+                f = funcs.pop()
+                for x in f.inputs:
+                    if x.creator is not None:
+                        funcs.append(x.creator)
+                        x.unchain()
 
 class Paramter(Variable):
     pass
@@ -433,3 +450,5 @@ def setup_variable():
     Variable.__rtruediv__ = rdiv
     Variable.__pow__ = pow
     Variable.__getitem__ = dezero.functions.get_item
+    Variable.max = dezero.functions.max
+    Variable.min = dezero.functions.min
