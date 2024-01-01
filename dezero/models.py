@@ -130,6 +130,8 @@ class simpleRNN(Model):
         super().__init__()
         self.rnn = L.RNN(hidden_size)
         self.fc = L.Linear(out_size)
+        # print(self.rnn.__dict__['x2h'], self.rnn.__dict__['h2h'])
+        # print(self.fc.__dict__['W'], self.fc.__dict__['b'])
 
     def reset_state(self):
         self.rnn.reset_state()

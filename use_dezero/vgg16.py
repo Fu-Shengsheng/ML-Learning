@@ -18,7 +18,7 @@ y = model(x)
 print(y)
 
 # 打印计算图
-model.plot(x)
+# model.plot(x)
 
 
 url = 'https://github.com/oreilly-japan/deep-learning-from-scratch-3/raw/images/zebra.jpg'
@@ -32,13 +32,13 @@ x = x[np.newaxis]
 print('x.shape after newaxis: ', x.shape)
 
 model = VGG16(pretrained=True)
-with dezero.test_mode():
-    y = model(x)
+# with dezero.test_mode():
+y = model(x)
 
 print('y.shape after predict: ', y.shape)
 predict_id = np.argmax(y.data)
 
-model.plot(x, to_file='vgg.pdf')
+# model.plot(x, to_file='vgg.pdf')
 labels = dezero.datasets.ImageNet.labels()
 print(labels[predict_id])
 
